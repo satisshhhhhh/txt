@@ -1,0 +1,74 @@
+import numpy as np
+from sklearn import preprocessing
+import string
+from tabulate import tabulate
+
+LABEL_CATEGORIES = {'company', 'vbd', 'person', 'cc', 'date', 'in', 'amount', 'duration'}
+
+def preprocess_text(input_text):
+    clean_text = ''.join([word for word in input_text if word not in string.punctuation])
+    tokens = clean_text.split(" ")
+    return tokens
+
+def custom_softmax(x):
+    exponents = np.exp(x - np.max(x))
+    return exponents / exponents.sum()
+
+def create_feature_functions(categories):
+    feature_functions = [
+        lambda pos, lbl1, lbl2: int(pos == 0),
+    ]
+
+    for lbl1 in categories:
+        for lbl2 in categories:
+            feature_functions.append(lambda pos, l1=lbl1, l2=lbl2: int(text_train_tags.get(text_train[max(0, pos - 1)], '') == l1 and text_train_tags.get(text_train[pos], '') == l2))
+
+    return feature_functions
+
+text_train_data = "Google hired XYZ in 2005, for $100,000 per annum."
+text_test_data = "Apple hired ABC in 1995, for $10 per hour."
+
+text_train = preprocess_text(text_train_data)
+text_test = preprocess_text(text_test_data)
+
+text_train_tags = {'Google': 'company','hired': 'vbd','XYZ': 'person','in': 'cc','2005': 'date','for': 'in','100000': 'amount','per': 'in','annum': 'duration'}
+
+feature_functions = create_feature_functions(LABEL_CATEGORIES)
+
+weights = np.random.rand(len(feature_functions))
+
+epochs = 10
+learning_rate = 0.05
+
+for epoch in range(epochs):
+    for token_pos in range(len(text_train)):
+        if text_train[token_pos] in text_train_tags:
+            features = [f(token_pos, text_train_tags.get(text_train[max(0, token_pos - 1)], ''), text_train_tags.get(text_train[token_pos], '')) for f in feature_functions]
+            weights += learning_rate * np.multiply(weights, features)
+    print(f"Epoch {epoch + 1}/{epochs} Updated weights: {weights}")
+
+normalized_weights = preprocessing.normalize([weights])
+
+tag_labels = list(LABEL_CATEGORIES)
+prediction_dict = {}
+previous_tag = 'company'
+
+for token_pos in range(1, len(text_test)):
+    tag_probabilities = []
+    for tag in tag_labels:
+        features = [f(token_pos, previous_tag, tag) for f in feature_functions]
+        weighted_features = np.multiply(normalized_weights, features)
+        probability = sum(weighted_features[0])
+        tag_probabilities.append(probability)
+
+    tag_probabilities = custom_softmax(tag_probabilities)
+    previous_tag = tag_labels[np.argmax(tag_probabilities)]
+    prediction_dict[text_test[token_pos]] = [round(prob, 3) for prob in tag_probabilities]
+
+table_data = []
+for token, probs in prediction_dict.items():
+    table_data.append([token] + probs)
+
+headers = ["Token"] + tag_labels
+table = tabulate(table_data, headers=headers, tablefmt="json")
+print(table)

@@ -1,0 +1,116 @@
+import pandas as pd
+import numpy as np
+from collections import Counter
+from ordered_set import OrderedSet
+d1= "The cow jumped over the moon"
+d2 = "O'Leary's cow kicked the lamp"
+d3= "The kicked lamp started a fire"
+d4 = "The cow on fire"
+
+def term_doc(*docs):
+  dd = []
+  for doc in docs:
+    dd.append(list(map(lambda x : x.lower(), doc.split(' '))))
+  counts = dict()
+  for idx, doc in enumerate(dd):
+    counts[idx] = Counter (doc)
+
+  mat = pd.DataFrame (counts).replace(np.nan, 0)
+  words= list(OrderedSet([word for doc in dd for word in doc]))
+  return mat, words
+
+
+mat, words = term_doc (d1, d2, d3, d4)
+mat
+
+u, s, vt = np.linalg.svd (mat, full_matrices=False)
+u,s,vt
+
+Ap
+pd.DataFrame (Ap, index=words)
+Ap
+
+
+def sim(w1, w2):
+    idx_w1 = words.index(w1)
+    idx_w2 = words.index(w2)
+
+    dot = np.dot(Ap[idx_w1], Ap[idx_w2])
+    div = len(Ap[idx_w1]) * len(Ap[idx_w2])
+    return dot / div
+
+similarity1 = sim('the', 'cow')
+print("Similarity between 'the' and 'cow':", similarity1)
+
+similarity2 = sim('the', 'over')
+print("Similarity between 'the' and 'over':", similarity2)
+
+similarity3 = sim('over', 'lamp')
+print("Similarity between 'over' and 'lamp':", similarity3)
+
+
+
+import pandas as pd
+import numpy as np
+from collections import Counter
+from ordered_set import OrderedSet
+
+class TextAnalyzer:
+    def __init__(self, *docs):
+        self.docs = docs
+        self.document_terms = []
+        self.term_counts = {}
+        self.term_matrix = None
+        self.words = None
+        self.u = None
+        self.s = None
+        self.vt = None
+
+    def preprocess_docs(self):
+        self.document_terms = [[word.lower() for word in doc.split()] for doc in self.docs]
+
+    def build_term_matrix(self):
+        self.term_counts = {idx: Counter(doc) for idx, doc in enumerate(self.document_terms)}
+        self.term_matrix = pd.DataFrame(self.term_counts).replace(np.nan, 0)
+        self.words = list(OrderedSet([word for doc in self.document_terms for word in doc]))
+
+    def perform_svd(self):
+        self.u, self.s, self.vt = np.linalg.svd(self.term_matrix, full_matrices=False)
+
+    def calculate_similarity(self, w1, w2):
+        idx_w1 = self.words.index(w1)
+        idx_w2 = self.words.index(w2)
+
+        dot = np.dot(self.vt.T[idx_w1], self.vt.T[idx_w2])
+        div = len(self.vt.T[idx_w1]) * len(self.vt.T[idx_w2])
+        return dot / div
+
+    def get_term_matrix_as_dataframe(self):
+        return pd.DataFrame(self.vt.T, index=self.words)
+
+if __name__ == "__main__":
+    d1 = "The sun shines brightly in the sky"
+    d2 = "Clouds gather before a storm"
+    d3 = "Raindrops fall from the heavens"
+    d4 = "A rainbow appears after the rain"
+
+    analyzer = TextAnalyzer(d1, d2, d3, d4)
+    analyzer.preprocess_docs()
+    analyzer.build_term_matrix()
+    analyzer.perform_svd()
+
+    similarity1 = analyzer.calculate_similarity('shines', 'sun')
+    print("Similarity between 'the' and 'sun':", similarity1)
+
+    similarity2 = analyzer.calculate_similarity('clouds', 'storm')
+    print("Similarity between 'clouds' and 'storm':", similarity2)
+
+    similarity3 = analyzer.calculate_similarity('raindrops', 'heavens')
+    print("Similarity between 'raindrops' and 'heavens':", similarity3)
+
+    term_matrix_df = analyzer.get_term_matrix_as_dataframe()
+    print("Term Matrix:")
+    print(term_matrix_df)
+
+
+

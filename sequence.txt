@@ -1,0 +1,76 @@
+import numpy as np
+
+def viterbi_pos_tagger(sentence, initial_probs, emission_probs, transition_probs, tags):
+    words = sentence.split()
+    num_words = len(words)
+    num_tags = len(tags)
+
+    # Initialize the HMM matrices
+    hmm_matrix = np.zeros((num_words, num_tags))
+    back_pointer = np.zeros((num_words, num_tags), dtype=int)
+
+    # Step 1: Compute the initial probabilities
+    for tag_idx in range(num_tags):
+        hmm_matrix[0, tag_idx] = initial_probs[tag_idx] * emission_probs[tag_idx, 0]  # Emission probability of first word
+
+    # Step 2: Perform the dynamic programming steps
+    for word_idx in range(1, num_words):
+        for tag_idx in range(num_tags):
+            max_prob = -1
+            max_prev_tag_idx = -1
+            for prev_tag_idx in range(num_tags):
+                prob = hmm_matrix[word_idx - 1, prev_tag_idx] * transition_probs[prev_tag_idx, tag_idx]
+                if prob > max_prob:
+                    max_prob = prob
+                    max_prev_tag_idx = prev_tag_idx
+            hmm_matrix[word_idx, tag_idx] = max_prob * emission_probs[tag_idx, word_idx]
+            back_pointer[word_idx, tag_idx] = max_prev_tag_idx
+
+    # Step 3: Perform backtracking to find the most likely sequence
+    best_path_prob = np.max(hmm_matrix[-1])
+    best_path_end_tag = np.argmax(hmm_matrix[-1])
+    best_path = [best_path_end_tag]
+    for i in range(num_words - 1, 0, -1):
+        best_path_end_tag = back_pointer[i, best_path_end_tag]
+        best_path.insert(0, best_path_end_tag)
+
+    # Map the tag indices to actual tags
+    best_path_tags = [tags[tag_idx] for tag_idx in best_path]
+    return best_path_tags
+
+def main():
+    # Input sentence and HMM parameters
+    sentence = "Janet will back the bill"
+    initial_probs = np.array([0.2767, 0.0006, 0.0031, 0.0453, 0.0449, 0.0510, 0.2026])
+    emission_probs = np.array([
+        [0.000032, 0, 0, 0.000048, 0],
+        [0, 0.308431, 0, 0, 0],
+        [0, 0.000028, 0.000672, 0, 0.000028],
+        [0, 0, 0.000340, 0, 0],
+        [0, 0.000200, 0.000223, 0, 0.002337],
+        [0, 0, 0.010446, 0, 0],
+        [0, 0, 0, 0.506099, 0]
+    ])
+    transition_probs = np.array([
+        [0.3777, 0.0110, 0.0009, 0.0084, 0.0584, 0.0090, 0.0025],
+        [0.0008, 0.0002, 0.7968, 0.0005, 0.0008, 0.1698, 0.0041],
+        [0.0322, 0.0005, 0.0050, 0.0837, 0.0615, 0.0514, 0.2231],
+        [0.0366, 0.0004, 0.0001, 0.0733, 0.4509, 0.0036, 0.0036],
+        [0.0096, 0.0176, 0.0014, 0.0086, 0.1216, 0.0177, 0.0068],
+        [0.0068, 0.0102, 0.1011, 0.1012, 0.0120, 0.0728, 0.0479],
+        [0.1147, 0.0021, 0.0002, 0.2157, 0.4744, 0.0102, 0.0017]
+    ])
+    transition_probs = np.round(transition_probs, decimals=2)
+
+    # POS tags
+    tags = ['NNP', 'MD', 'VB', 'JJ', 'NN', 'RB', 'DT']
+
+    # Perform POS tagging using Viterbi algorithm
+    best_path_tags = viterbi_pos_tagger(sentence, initial_probs, emission_probs, transition_probs, tags)
+
+    # Output the most likely sequence of POS tags
+    print("Most likely sequence of POS tags:")
+    print(best_path_tags)
+
+if __name__ == "__main__":
+    main()

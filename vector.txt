@@ -1,0 +1,97 @@
+import math
+from collections import defaultdict
+
+def word_tokenize(sentence):
+    words = []
+    current_word = ""
+    for char in sentence:
+        if char.isalpha():
+            current_word += char.lower()
+        elif current_word:
+            words.append(current_word)
+            current_word = ""
+    if current_word:
+        words.append(current_word)
+    return words
+
+def remove_stopwords(tokens, stopwords):
+    filtered_tokens = []
+    for token in tokens:
+        if token not in stopwords:
+            filtered_tokens.append(token)
+    return filtered_tokens
+
+def lemmatize_tokens(tokens):
+    lemmatized_tokens = []
+    for token in tokens:
+        lemmatized_tokens.append(token.lower())
+    return lemmatized_tokens
+
+def calculate_word_frequencies(tokens):
+    freq_dist = defaultdict(int)
+    for token in tokens:
+        freq_dist[token] += 1
+    return freq_dist
+
+def calculate_word_probability(sentence, word):
+    tokens = word_tokenize(sentence)
+    total_words = len(tokens)
+
+    freq_dist = calculate_word_frequencies(tokens)
+    word_freq = freq_dist[word]
+
+    probability = word_freq / total_words
+    return probability
+
+def generate_word_embeddings(sentence):
+    tokens = word_tokenize(sentence)
+    lemmatized_tokens = lemmatize_tokens(tokens)
+
+    word_embeddings = {}
+    for i, token in enumerate(lemmatized_tokens):
+        if token not in word_embeddings:
+            word_embeddings[token] = [0] * len(lemmatized_tokens)
+        word_embeddings[token][i] += 1
+
+    return word_embeddings
+
+def calculate_cosine_similarity(embeddings, word1, word2):
+    vec1 = embeddings[word1]
+    vec2 = embeddings[word2]
+
+    dot_product = sum(v1 * v2 for v1, v2 in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(v * v for v in vec1))
+    norm2 = math.sqrt(sum(v * v for v in vec2))
+
+    similarity = dot_product / (norm1 * norm2)
+    return similarity
+
+def update_word_embeddings(embeddings, sentence):
+    tokens = word_tokenize(sentence)
+    lemmatized_tokens = lemmatize_tokens(tokens)
+
+    for i, token in enumerate(lemmatized_tokens):
+        if token not in embeddings:
+            embeddings[token] = [0] * len(lemmatized_tokens)
+        embeddings[token][i] += 1
+
+    return embeddings
+
+# Example usage
+sentence = "I love eating pizza and burgers."
+word = "pizza"
+
+# Obtain initial word embeddings
+initial_embeddings = generate_word_embeddings(sentence)
+print(f"Initial Embedding for '{word}': {initial_embeddings[word]}")
+
+# Calculate word probability
+probability = calculate_word_probability(sentence, word)
+print(f"Probability of '{word}' occurring: {probability}")
+
+# Update the sentence
+updated_sentence = "I love eating pizza and pasta."
+
+# Obtain updated word embeddings
+updated_embeddings = update_word_embeddings(initial_embeddings, updated_sentence)
+print(f"\nUpdated Embedding for '{word}': {updated_embeddings[word]}")

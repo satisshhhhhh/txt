@@ -1,0 +1,80 @@
+from nltk.tokenize import RegexpTokenizer
+from stop_words import get_stop_words
+from nltk.stem.porter import PorterStemmer
+import numpy as np
+
+# Step 1: Data Preprocessing
+tokenizer = RegexpTokenizer(r'\w+')
+en_stop = get_stop_words('en')
+p_stemmer = PorterStemmer()
+
+doc_a = "Broccoli is good to eat. My brother likes to eat good broccoli, but not my mother."
+doc_b = "My mother spends a lot of time driving my brother around to baseball practice."
+doc_c = "Some health experts suggest that driving may cause increased tension and blood pressure."
+doc_d = "I often feel pressure to perform well at school, but my mother never seems to drive my brother to do better."
+doc_e = "Health professionals say that broccoli is good for your health."
+
+doc_set = [doc_a, doc_b, doc_c, doc_d, doc_e]
+
+texts = []
+for doc in doc_set:
+    raw = doc.lower()
+    tokens = tokenizer.tokenize(raw)
+    stopped_tokens = [token for token in tokens if token not in en_stop]
+    stemmed_tokens = [p_stemmer.stem(token) for token in stopped_tokens]
+    texts.append(stemmed_tokens)
+
+# Step 2: Create Document-Term Matrix (DTM)
+unique_words = set(word for doc in texts for word in doc)
+word_to_idx = {word: idx for idx, word in enumerate(unique_words)}
+num_docs = len(texts)
+num_words = len(unique_words)
+
+dtm = np.zeros((num_docs, num_words))
+for doc_idx, doc in enumerate(texts):
+    for word in doc:
+        word_idx = word_to_idx[word]
+        dtm[doc_idx, word_idx] += 1
+
+print("Initial Document-Term Matrix:")
+print(dtm)
+print()
+
+# Hyperparameters
+alpha = 0.1  # Alpha hyperparameter for topic-document distribution
+beta = 0.1   # Beta hyperparameter for word-topic distribution
+
+# Initialize p1 and p2 with hyperparameters
+p1 = (dtm + alpha) / np.sum(dtm + alpha, axis=1, keepdims=True)
+p2 = (np.sum(dtm, axis=0) + beta) / (np.sum(dtm) + beta * num_words)
+
+# Convergence loop
+max_iterations = 100
+epsilon = 1e-6
+for iteration in range(max_iterations):
+    # Update p1 and p2
+    p1_new = (dtm + alpha) / np.sum(dtm + alpha, axis=1, keepdims=True)
+    p2_new = (np.sum(dtm, axis=0) + beta) / (np.sum(dtm) + beta * num_words)
+
+    # Calculate new document-term matrix
+    dtm_new = np.dot(p1_new, np.diag(p2_new))
+
+    print(f"Iteration {iteration+1} -------------------")
+    print("Document-Term Matrix:")
+    print(dtm_new)
+    print()
+    print("Topic-Document Distribution (p1):")
+    print(p1_new)
+    print()
+    print("Word-Topic Distribution (p2):")
+    print(p2_new)
+    print()
+
+    # Check for convergence
+    if np.all(np.abs(dtm - dtm_new) < epsilon):
+        print("Converged after", iteration+1, "iterations.")
+        break
+
+    dtm = dtm_new
+    p1 = p1_new
+    p2 = p2_new

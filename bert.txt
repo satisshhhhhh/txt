@@ -1,0 +1,73 @@
+!pip install transformers
+
+from transformers import pipeline
+
+qa_pipeline = pipeline("question-answering", model="bert-large-uncased-whole-word-masking-finetuned-squad")
+
+# Define the question
+#question = "What is Raksha Bandhan ?"
+#question = "Raksha Bandhan Date ?"
+question = "when is Raksha Bandhan ?"
+
+context = "Raksha Bandhan is a Hindu festival that is usually celebrated in August. This year, Raksha Bandhan falls on 30 August."
+
+answer = qa_pipeline(question=question, context=context)
+
+print("Question:", question)
+print("Answer:", answer["answer"])
+
+from transformers import BertTokenizer, BertForNextSentencePrediction
+
+model_name = 'bert-base-uncased'
+tokenizer = BertTokenizer.from_pretrained(model_name)
+model = BertForNextSentencePrediction.from_pretrained(model_name)
+
+sentence1 = "Raksha Bandhan is a Hindu festival."
+sentence2 = "It is usually celebrated in August."
+
+inputs = tokenizer(sentence1, sentence2, return_tensors='pt', padding=True, truncation=True)
+
+with torch.no_grad():
+    outputs = model(**inputs)
+
+logits = outputs.logits
+connected_prob = torch.sigmoid(logits[0, 0]).item()  # "IsNext" probability
+randomness_prob = torch.sigmoid(logits[0, 1]).item()  # "NotNext" probability
+
+print("Connected Probability:", connected_prob)
+print("Randomness Probability:", randomness_prob)
+
+
+import matplotlib.pyplot as plt
+from transformers import BertTokenizer, BertForNextSentencePrediction
+
+# Load pretrained BERT NSP (Next Sentence Prediction) model and tokenizer
+model_name = 'bert-base-uncased'
+tokenizer = BertTokenizer.from_pretrained(model_name)
+model = BertForNextSentencePrediction.from_pretrained(model_name)
+
+# Example sentences
+sentence1 = "Raksha Bandhan is a Hindu festival."
+sentence2 = "It is blue."
+
+# Tokenize sentences and convert to tensors
+inputs = tokenizer(sentence1, sentence2, return_tensors='pt', padding=True, truncation=True)
+
+# Perform inference
+with torch.no_grad():
+    outputs = model(**inputs)
+
+# Get the logits for the next sentence prediction
+logits = outputs.logits
+connected_prob = torch.sigmoid(logits[0, 0]).item()  # "IsNext" probability
+randomness_prob = torch.sigmoid(logits[0, 1]).item()  # "NotNext" probability
+
+# Create a pie chart
+labels = ['Connected', 'Randomness']
+probs = [connected_prob, randomness_prob]
+
+plt.pie(probs, labels=labels, autopct='%1.1f%%', startangle=90)
+plt.title('Next Sentence Prediction Probabilities')
+plt.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
+plt.show()
+
